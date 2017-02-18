@@ -1,10 +1,12 @@
 SRCS = $(patsubst $(SRCDIR)/%,%,$(shell find $(SRCDIR) -name \*.java))
 MAIN = de.dietzm.GCodeUtil
 CLASSPATH = /usr/share/java/RXTXcomm.jar
-JARNAME = GCodeInfo.jar
+JARNAME = GCodeInfo
+JARDIR = bin
+ZIPDIR = zip
 SRCDIR = GCodeInfo/src
 BINDIR = GCodeInfo/bin
-ZIP_FILES = $(JARNAME) README.md
+ZIP_FILES = README.md bin VERSION
 
 JFLAGS = -g
 JC = javac
@@ -15,29 +17,33 @@ JAR = jar
 
 CLASSES = $(SRCS:.java=.class)
 GIT_REVISION := $(shell git log -1 --format=%h 2>/dev/null)
-ZIP_NAME = $(basename $(JARNAME))-$(shell cat VERSION)
+JARPATH = $(JARDIR)/$(JARNAME).jar
+ZIPNAME = $(JARNAME)-$(shell cat VERSION)
+ZIPPATH = $(ZIPDIR)/$(ZIPNAME).zip
 
-all: $(JARNAME)
+all: $(JARPATH)
 
-$(JARNAME): $(addprefix $(BINDIR)/,$(CLASSES))
+$(JARPATH): $(addprefix $(BINDIR)/,$(CLASSES))
 	$(JAR) cvfe $@ $(MAIN) -C $(BINDIR) .
 
 $(BINDIR)/%.class: $(SRCDIR)/%.java
 	-mkdir -p $(dir $@)
 	$(JC) $(JFLAGS) -s $(SRCDIR) -d $(BINDIR) -cp $(BINDIR):$(CLASSPATH) -sourcepath $(SRCDIR) $<
 
-run: $(JARNAME)
+run: $(JARPATH)
 	$(JVM) -jar $<
 
-zip: $(ZIP_FILES)
-	rm -rf $(ZIP_NAME).zip $(ZIP_NAME)
-	mkdir -p $(ZIP_NAME)
+zip: $(ZIPPATH)
+
+$(ZIPPATH): $(ZIP_FILES)
+	$(RM) -r $(ZIPDIR)/$(ZIPNAME)
+	mkdir -p $(ZIPDIR)/$(ZIPNAME)
 	for p in $(ZIP_FILES); do \
-		mkdir -p $(ZIP_NAME)/`dirname $$p`; \
-		cp -Rp $$p $(ZIP_NAME)/`dirname $$p`; \
+		mkdir -p $(ZIPDIR)/$(ZIPNAME)/`dirname $$p`; \
+		cp -Rp $$p $(ZIPDIR)/$(ZIPNAME)/`dirname $$p`; \
 	done
-	zip -9r $(ZIP_NAME).zip $(ZIP_NAME)
-	rm -rf $(ZIP_NAME)
+	cd $(ZIPDIR) && zip -9r $(ZIPNAME).zip $(ZIPNAME)
+	$(RM) -r $(ZIPDIR)/$(ZIPNAME)
 
 clean:
-	$(RM) -r $(BINDIR) $(JARNAME) $(ZIP_NAME).zip
+	$(RM) -r $(BINDIR) $(JARPATH) $(ZIPPATH)
